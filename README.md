@@ -1,4 +1,4 @@
-# ML_Rstudio
+# Machine Learning con Rstudio
 
 Ejemplos de técnicas de clasificaciones con Rstudio, utilizando diferentes técnicas de Machine Learning. Específicamente utilizamos:
 

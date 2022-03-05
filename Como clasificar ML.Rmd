@@ -1,0 +1,572 @@
+---
+title: "Machine Learning R"
+author: "Cristopher Valenzuela"
+date: "3 de marzo de 2022"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+#Arboles de clasificación.
+
+
+
+```{r }
+#Cargamos los datos
+
+cancer<-read.csv("C:\\Users\\Cristopher\\Desktop\\datos omicos git\\Machine learning R\\machine_learning_R\\BreastCancer1.csv", stringsAsFactors = TRUE)
+
+
+str(cancer)
+
+
+```
+
+
+```{r}
+
+library(caret)
+library(rpart) #construccion de arboles
+library(rpart.plot) #graficar dichos arboles
+library(tidyverse)
+library(lattice)
+library(randomForest)
+#primero eliminamos los id porque es informaicon redundante
+
+cancer = cancer[,-1]
+
+#creamos la particion del datasets
+
+trainings.ids<-createDataPartition(cancer$diagnosis,p=0.7,list = FALSE)
+
+#generamos el arbol
+#establecemos las variables dependientes y las independientes
+
+mod <- randomForest(x = cancer[trainings.ids , 1:30],
+                    y = cancer[trainings.ids , 31],
+                    ntree = 100,
+                    keep.forest = TRUE)
+
+mod
+```
+
+```{r}
+#vemos que tan bueno es el modelo
+
+pred<-predict(mod,cancer[-trainings.ids,])
+table(cancer[-trainings.ids,"diagnosis"],pred,dnn= c("Actual","Predicho"))
+
+
+```
+
+Creamos curva ROC
+
+```{r}
+library(ROCR)
+probs<-predict(mod,cancer[-trainings.ids,], type = "prob")
+pred<-prediction(probs[,2],cancer[-trainings.ids,"diagnosis"])
+perf<-performance(pred,"tpr","fpr")
+plot(perf)
+
+```
+
+La clasificacion es muy buena.
+
+
+#Maquinas de soporte vectorial.
+
+
+```{r}
+#Se utilizaran los mismos datos del ejercicio anterior
+
+cancer<-read.csv("C:\\Users\\Cristopher\\Desktop\\datos omicos git\\Machine learning R\\machine_learning_R\\BreastCancer1.csv", stringsAsFactors = TRUE)
+
+cancer = cancer[,-1]
+
+library(caret)
+library(e1071)
+
+#Como ya tenemos los datos como dataframe y la variable dependiente convertida en factor, asi que procedemos a la
+#particion de datos en 80 y 20.
+
+t.ids2<- createDataPartition(cancer$diagnosis, p = 0.7, list = F)
+
+#creamos el modelo
+mod <- svm(diagnosis ~ ., data = cancer[t.ids2,])
+
+mod
+
+```
+
+Veremos que tan bien predice
+
+
+```{r}
+table(cancer[t.ids2,"diagnosis"], fitted(mod), dnn = c("Actual","Predicho"))
+```
+
+Obtenemos una clasificacion muy buena en este caso.
+
+Intentaremos predecir en base al modelo anterior, los dato que no tomamos en la creacion del modelo anterior.
+
+```{r}
+
+pred<- predict(mod, cancer[-t.ids2,])
+table(cancer[-t.ids2,"diagnosis"],pred,dnn = c("Actual","Predicho"))
+
+
+```
+
+
+Graficamos la division
+
+```{r}
+plot(mod , data = cancer[t.ids2,], concavity_mean ~ radius_se)
+
+```
+
+Sin separacion de rectas
+
+
+```{r}
+plot(mod , data = cancer[-t.ids2,], concavity_mean ~ radius_se)
+```
+
+Tambien podriamos agregarles pesos a las clases, por ejemplo al M = 0.3 y al B=0.7
+
+```{r}
+mod <- svm(diagnosis ~ ., data = cancer[t.ids2, ], class.weights=c("M"=0.3, "B"=0.7))
+plot(mod , data = cancer[t.ids2,], concavity_mean ~ radius_se)
+
+
+```
+
+
+#Naive Bayes.
+ 
+```{r}
+
+library(e1071)
+library(caret)
+library(naivebayes)
+library(readr)
+
+#utilizamos datos de "churn" y la variable dependiente sera la variable "churn"
+
+datos_churn<- read.csv("C:\\Users\\Cristopher\\Desktop\\datos omicos git\\Machine learning R\\machine_learning_R\\Archivo data - 2022.csv", stringsAsFactors = TRUE)
+
+datos_churn<- datos_churn %>%
+  select(gender,PhoneService,OnlineSecurity,OnlineBackup,PaperlessBilling,Churn)
+
+
+datos_churn$OnlineSecurity <- gsub('No internet service', 'No', datos_churn$OnlineSecurity)
+datos_churn$OnlineBackup <- gsub('No internet service', 'No',datos_churn$OnlineBackup)
+
+datos_churn$PhoneService <- factor(datos_churn$PhoneService,
+                                   levels = c("Yes","No"),
+                                   labels = c("1","0"))
+
+datos_churn$OnlineSecurity<-factor(datos_churn$OnlineSecurity,
+                                   levels = c("Yes","No"),
+                                   labels = c("1","0"))
+
+datos_churn$OnlineBackup<-factor(datos_churn$OnlineBackup,
+                                   levels = c("Yes","No"),
+                                   labels = c("1","0"))
+
+
+datos_churn$OnlineSecurity<-factor(datos_churn$OnlineSecurity,
+                                   levels = c("Yes","No"),
+                                   labels = c("1","0"))
+
+datos_churn$PaperlessBilling<-factor(datos_churn$PaperlessBilling,
+                                   levels = c("Yes","No"),
+                                   labels = c("1","0"))
+
+
+datos_churn$Churn<-factor(datos_churn$Churn,
+                          levels = c("Yes","No"),
+                          labels = c("1","0"))
+datos_churn$gender<-factor(datos_churn$gender,
+                           levels = c("Male","Female"),
+                           labels = c("1","0"))
+
+write.csv(datos_churn,"C:\\Users\\Cristopher\\Desktop\\datos omicos git\\Machine learning R\\machine_learning_R\\datos_churn.csv")
+
+```
+ 
+```{r}
+
+datos_churn<-read.csv("C:\\Users\\Cristopher\\Desktop\\datos omicos git\\Machine learning R\\machine_learning_R\\datos_churn.csv")
+
+datos_churn = datos_churn[,-1]
+
+library(e1071)
+library(caret)
+library(naivebayes)
+library(readr)
+
+#utilizamos datos de "churn" y la variable dependiente sera la variable "churn"
+#vamos a crear un conjunto de entrenamiento:
+
+t.ids.churn <- createDataPartition(datos_churn$Churn, p = 0.7, list = F)
+
+#Intentamos predecir Churn utilizando las otras variables
+
+mod.churn<-naiveBayes(Churn ~ ., data = datos_churn[t.ids.churn,])
+
+mod.churn
+
+
+```
+ 
+Vamos a probar el modelo en frente de las variables que no tome para predecir de las visualizaciones de validacion.
+```{r}
+
+
+pred.churn<- predict(mod.churn, datos_churn[-t.ids.churn,])
+
+tab.churn <- table(datos_churn[-t.ids.churn,]$Churn, pred.churn, dnn = c("Actual","Predicha"))
+
+confusionMatrix(tab.churn)
+
+```
+ 
+ En este caso observamos que el modelo es mucho mejor prediciendo cuando "no" abandonan los clientes.
+ 
+ 
+#The k-nearest neighbors (KNN)
+ 
+
+
+```{r}
+
+vacation<-read.csv("C:\\Users\\Cristopher\\Desktop\\datos omicos git\\Machine learning R\\machine_learning_R\\vacation-trip-classification.csv",stringsAsFactors = TRUE)
+
+
+vacation$Income.z <-scale(vacation$Income)
+
+#ahora el data tiene una nueva columna normalizada tomando valores cercanas al cero
+#ahora hago lo mismo con el numero de familias.
+
+vacation$Family_size.z <-scale(vacation$Family_size)
+
+
+t.ids.vec<- createDataPartition(vacation$Result, p=0.5,list = F)
+# 50 de datos de entrenamiento por eso el 0.5
+
+train <- vacation[t.ids.vec, ]
+temp <- vacation[-t.ids.vec, ]
+v.ids.vec <- createDataPartition(temp$Result, p=0.5, list = F)
+val <- temp[v.ids.vec,]
+test <- temp[-v.ids.vec,]
+
+pred1 <- knn3Train(train[,4:5], val[,4:5], train[,3], k = 1)
+#vamos a generar una matrix de confusion para ver como nos queda el resultado:
+
+errmat1 <- table(val$Result, pred1, dnn = c("Actual", "Predichos"))
+
+errmat1
+
+
+```
+ 
+Tenemos 5 aciertos y 5 errores. Para ver que resultados tengo, si elijo 5 vecinos en vez de 1
+
+```{r}
+# un mejor resultado.
+
+errmat1 <- table(val$Result, pred1, dnn = c("Actual", "Predichos"))
+
+pred1 <- knn3Train(train[,4:5], val[,4:5], train[,3], k = 5)
+
+errmat1
+```
+
+Obtenemos el mismo resultado
+
+
+Eligiendo el mejor numeros de vecinos para la decision
+
+```{r}
+knn.automate <- function(tr_predictors, val_predictors, tr_target,
+                         val_target, start_k, end_k)
+
+  
+for (k in start_k:end_k) {
+  pred <- knn3Train(tr_predictors, val_predictors, tr_target, )
+  tab <- table(val_target, pred, dnn = c("Actual", "Predichos") )
+  cat(paste("Matriz de confusion para k = ",k,"\n"))
+  cat("==============================\n")
+  print(tab)
+  cat("------------------------------\n")
+  }
+
+#ahora le pasamos las predicciones
+knn.automate(train[,4:5], val[,4:5], train[,3], val[,3], 1,8)
+
+```
+
+ Tambien se puede utilizar el paquete caret para este mismo objetivo
+ 
+ 
+```{r}
+
+
+trcntrl<- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+
+# el numero de veces que se llevara a cabo la operacion es 10 y el numero de repeticiones 3.
+# esto es nuestro dato de control.
+
+caret_knn_fit <- train(Result ~ Family_size + Income, data = train,
+                       method = "knn", trControl = trcntrl,
+                       preProcess = c("center","scale"),
+                       tuneLength = 10)
+
+caret_knn_fit
+```
+ 
+En este caso con el K=13 se obtiene la mayor precision, que es el 73% de precision.
+
+Realizamos una ultima prediccion, de si es comprador o no.
+
+```{r}
+pred.vecinos5 <- knn3Train(train[,4:5], val[,4:5], train[,3], k=5, prob = T)
+
+pred.vecinos5[1:9]
+
+```
+
+
+#Redes Neuronales para clasificar.
+
+```{r}
+library(nnet)
+
+#Utilizamos datos de salud materna
+salud_materna<-read.csv("C:\\Users\\Cristopher\\Desktop\\datos omicos git\\Machine learning R\\machine_learning_R\\Maternal_Health_Risk_Data_Set.csv", stringsAsFactors = TRUE)
+
+#eliminamos la primera columna que es identificador y escalamos los datos
+
+salud_materna = salud_materna[,-1]
+
+salud_materna_scal<- scale(salud_materna[,-7])
+  
+salud <- cbind(salud_materna_scal,salud_materna$RiskLevel)
+#obtenemos los datos escalados y centrados mas la variable dependiente
+
+head(salud)
+
+```
+
+Realizamos el analisis
+
+```{r}
+
+#transformamos la variable dependiente en factor
+
+salud = as.data.frame(salud)
+
+salud$V7 = as.factor(salud$V7)
+
+#segmentamos y creamos el conjunto de entrenamiento:
+
+t.id.red<-createDataPartition(salud$V7, p= 0.7, list = F)
+
+#creamos el modelo
+mod <- nnet(V7 ~., data = salud[t.id.red,],
+            size = 3, maxit = 10000, decay = .001, rang = 0.32,
+            na.action = na.omit, skip = T)
+
+#seleccionamos como rango 0.32 porque este numero multiplicado por el numero maximo de las variables por columna nos da cercano a 1, ejemplo 0.32 * 3.2(rango maximo por columnas) nos da 1.024
+
+
+```
+
+Realizamos el plot con el modelo
+
+```{r}
+#install.packages("NeuralNetTools")
+
+library(NeuralNetTools)
+
+NeuralNetTools::plotnet(mod)
+
+```
+
+
+```{r}
+
+pred_red <- predict(mod, newdata = salud[-t.id.red,], type = "class")
+
+#creamos una matriz de confusion
+
+table(salud[-t.id.red,]$V7, pred_red, dnn = c("Actual","Predichos"))
+
+
+```
+
+Creamos una curva ROC para ver que tan bien clasifica.
+
+```{r}
+library(ROCR)
+pred2_red <- predict(mod, newdata = salud[-t.id.red,], type = "raw")
+perf <- performance(prediction(pred2_red, salud[-t.id.red,"V7"]),
+                    "tpr", "fpr")
+
+plot(perf)
+
+```
+
+
+#Análisis Discriminante Lineal.
+
+
+```{r}
+
+library(caret)
+#utilizamos los datos de salud igual que en el apartado anterior
+salud_discriminante<-read.csv("C:\\Users\\Cristopher\\Desktop\\datos omicos git\\Machine learning R\\machine_learning_R\\Maternal_Health_Risk_Data_Set.csv", stringsAsFactors = TRUE)
+
+#eliminamos la primera columna que es identificador y escalamos los datos
+
+salud_discriminante = salud_discriminante[,-1]
+
+salud_materna_scal<- scale(salud_discriminante[,-7])
+  
+salud_lineal_disc <- cbind(salud_materna_scal,salud_discriminante$RiskLevel)
+#obtenemos los datos escalados y centrados mas la variable dependiente
+salud_lineal_disc[1:5,1:7]
+
+```
+
+
+```{r}
+#transformamos los data en dataframe
+salud_lineal_disc = as.data.frame(salud_lineal_disc)
+#transformamos la variable dependiente en factor
+
+salud_lineal_disc$V7 = as.factor(salud_lineal_disc$V7)
+
+#fijamos una semilla y creamos la particion de los datos
+
+set.seed(2022)
+t.id.disc <- createDataPartition(salud_lineal_disc$V7, p=0.7, list = F)
+
+#seleccionamos los parametros de salida
+
+library(MASS)
+
+mod.disc <- lda(salud_lineal_disc[t.id.disc,1:6], salud_lineal_disc[t.id.disc,7])
+
+```
+
+
+
+```{r}
+# Predecimos los valores, voy a utilizar el data frame original
+
+salud_lineal_disc[t.id.disc, "Pred"] <- predict(mod.disc, salud_lineal_disc[t.id.disc, 1:6])$class
+
+#creamos una matriz de confusion
+
+table(salud_lineal_disc[t.id.disc, "V7"], salud_lineal_disc[t.id.disc, "Pred"], dnn = c("Actual","Predichos"))
+
+```
+
+
+```{r}
+#Tenemos una variable de prediccion lleno de NAs, voy a cambiar los NAs con su prediccion.
+
+salud_lineal_disc[-t.id.disc, "Pred"] <- predict(mod.disc, salud_lineal_disc[-t.id.disc, 1:6])$class
+
+```
+
+
+Revisamos si mejora en algo la prediccion con una tabla de confusion
+
+```{r}
+#podriamos hacer una table de doble entrada, una matriz de confusion.
+
+table(salud_lineal_disc[-t.id.disc,"V7"], salud_lineal_disc[-t.id.disc, "Pred"], dnn = c("Actual","Predicho"))
+
+```
+
+
+#Regresión Logística.
+
+
+```{r}
+#Utilizamos los datos de las casas de boston
+
+boston<-read.csv("C:\\Users\\Cristopher\\Desktop\\datos omicos git\\Machine learning R\\machine_learning_R\\boston.csv",stringsAsFactors = TRUE)
+
+#escalamos las variables para que esten todas en la misma escala.
+
+boston_scal <- scale(boston[,-7])
+
+#juntamos los datos escalados con la variable dependiente
+boston_datos<- cbind(boston_scal,boston$CLASS)
+
+#transformar los datos en dataframe y la variable dependiente en factor
+
+boston_datos = as.data.frame(boston_datos)
+
+boston_datos$V7 = as.factor(boston_datos$V7)
+
+#visualizamos los datos
+
+head(boston_datos)
+
+```
+
+
+```{r}
+
+set.seed(2020)
+
+#creo el conjunto de entrenamiento:
+
+t.id.logistica <- createDataPartition(boston_datos$V7, p=0.7, list = F)
+
+#regresion logsitica
+
+regresion_logistica<-glm(V7~.,data = boston_datos[t.id.logistica,],family = "binomial")
+
+summary(regresion_logistica)
+
+```
+
+En este caso obtenemos que las variables estadisticamente significativas son NOX,DIS,RAD, PTRATIO y B. 
+
+```{r}
+
+#Podemos calcular las probabilidades de exito para las validaciones como de los datos del modelo original.
+
+boston_datos[-t.id.logistica, "PROB_SUCCESS"]<- predict(regresion_logistica, newdata = boston_datos[-t.id.logistica,], type = "response")
+
+head(boston_datos)
+
+```
+
+
+```{r}
+# Tenemos que elegir desde que probabilidad acepto que es un exito y desde cual es un fracaso, establecemos que en un 50% es un exito.
+
+boston_datos[-t.id.logistica, "PRED_50"] <-ifelse(boston_datos[-t.id.logistica, "PROB_SUCCESS"]>=0.5,1,0)
+
+```
+
+
+Con una matriz de confusion veremos que tan bien predice
+
+```{r}
+
+boston_datos = as.data.frame(boston_datos)
+table(boston_datos[-t.id.logistica,"V7"], boston_datos[-t.id.logistica, "PRED_50"], dnn=c("Actual","Predicho"))
+
+```
+
+Podemos observar que predice bastante bien en general.
+

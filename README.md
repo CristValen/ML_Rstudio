@@ -1,8 +1,8 @@
 # ML_Rstudio
 
-Ejemplos de tecnicas de clasificaciones con Rstudio, utilizando diferentes tecnicas de Machine Learning. Especificamente utilizamos
+Ejemplos de técnicas de clasificaciones con Rstudio, utilizando diferentes técnicas de Machine Learning. Específicamente utilizamos:
 
-a) Arboles de clasificacion.
+a) Arboles de clasificación.
 
 b) Maquinas de soporte vectorial.
 
@@ -12,6 +12,7 @@ d) The k-nearest neighbors (KNN).
 
 e) Redes Neuronales para clasificar.
 
-f) Analisis Discriminante Lineal.
+f) Análisis Discriminante Lineal.
 
-g) Regresion Logistica.
+g) Regresión Logística.
+
